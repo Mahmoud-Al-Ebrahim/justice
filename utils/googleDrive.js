@@ -3,7 +3,9 @@ const fs = require('fs');
 const { load } = require('@pspdfkit/nodejs');
 const { google } = require('googleapis');
 
-const apikeys = require('../config/gdrive_api_keys.json');
+const apikeys = require('/etc/secrets/gdrive_api_keys.json');
+
+// const apikeys = require('../config/gdrive_api_keys.json');
 const SCOPE = ['https://www.googleapis.com/auth/drive'];
 
 const options = {
