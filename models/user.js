@@ -5,27 +5,27 @@ const {Schema} = mongoose
 const userSchema = new Schema({
     username: {
         type: String,
-        required: [true, "Username is required"],
+        required: [true, "اسم المستخدم مطلوب"],
     },
     email: {
         type: String,
         unique: true,
-        required: [true, "Email is required"],
+        required: [true, "البريد الإلكتروني مطلوب"],
     },
     number: {
         type: String,
         unique: true,
-        required: [true, "Contact Number is required"],
+        required: [true, "رقم الهاتف مطلوب"],
     },
     address: {
         type: String,
         unique: true,
-        required: [true, "Address is required"],
+        required: [true, "العنوان مطلوب"],
     },
     
     password: {
         type: String,
-        required: [true, "Password is required"],
+        required: [true, "كلمة المرور مطلوبة"],
     },
     avatar_url: {
         type: String,
@@ -33,7 +33,7 @@ const userSchema = new Schema({
     },
     type: {
         type: String,
-        required: [true, "Type is required"],
+        required: [true, "نوع المستخدم مطلوب"],
     },
     rating: {
         type: {

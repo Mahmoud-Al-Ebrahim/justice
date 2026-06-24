@@ -2,6 +2,7 @@ const fs = require('fs')
 const getUserInfo = require('../helpers/getUserInfo');
 const saveNotifications = require('../helpers/saveNotification');
 const { DataNotExistError, UserNotSameError, DoNotHaveAccessError } = require('../helpers/exceptions');
+const messages = require('../helpers/messages');
 const validator = require('validator');
 const Document = require('../models/document');
 const mongoose = require('mongoose');
@@ -27,7 +28,7 @@ const checkCaseAccess = async (userId, type, caseId) => {
         )
 
     if (!cases || cases.length === 0)
-        throw new DataNotExistError("Case not exist")
+        throw new DataNotExistError(messages.CASE_NOT_EXIST)
 }
 
 const updateDoc = async (req, res) => {
@@ -81,12 +82,12 @@ const updateDoc = async (req, res) => {
         )
 
         if (!selectedDocument) {
-            throw new DataNotExistError("Document not exist")
+            throw new DataNotExistError(messages.DOCUMENT_NOT_EXIST)
         }
         let editedByUserName = await User.findById(new mongoose.Types.ObjectId(userId)).select(['username']);
         let editedCaseName = await Case.findById(new mongoose.Types.ObjectId(q_caseId)).select(['case_title']);
         
-        await saveNotifications(`${editedByUserName.username} has edited document in this case: ${editedCaseName.case_title}`, can_be_access_by, "editDocument", `/php/document/view.php?id=${selectedDocument._id}&cid=${editedCaseName._id}`)
+        await saveNotifications(`${editedByUserName.username} قام بتعديل مستند في هذه القضية: ${editedCaseName.case_title}`, can_be_access_by, "editDocument", `/php/document/view.php?id=${selectedDocument._id}&cid=${editedCaseName._id}`)
 
         return res.status(200).send(selectedDocument)
     } catch (error) {
@@ -98,7 +99,7 @@ const updateDoc = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -142,7 +143,7 @@ const readDoc = async (req, res) => {
         let relatedCaseName = await Case.findById(new mongoose.Types.ObjectId(relatedCaseId)).select('case_title');
 
         if (!requestedDocument)
-            throw new DataNotExistError("Document not exist")
+            throw new DataNotExistError(messages.DOCUMENT_NOT_EXIST)
 
         return res.status(200).send({ ...requestedDocument._doc, canEdit: requestedDocument.uploaded_by === userId, uploadedByUserName, lastAccessedByUserName, relatedCaseName })
     } catch (error) {
@@ -154,7 +155,7 @@ const readDoc = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -184,7 +185,7 @@ const listDoc = async (req, res) => {
         }
 
         if (!allDocument)
-            throw new DataNotExistError("Document not exist")
+            throw new DataNotExistError(messages.DOCUMENT_NOT_EXIST)
 
         return res.status(200).send(updatedCaseDocs)
     } catch (error) {
@@ -196,7 +197,7 @@ const listDoc = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -231,7 +232,7 @@ const listDocByCase = async (req, res) => {
         }
 
         if (!caseDocuments)
-            throw new DataNotExistError("Document not exist")
+            throw new DataNotExistError(messages.DOCUMENT_NOT_EXIST)
         await checkCaseAccess(userId, type, caseId)
 
         return res.status(200).send(updatedCaseDocs)
@@ -244,7 +245,7 @@ const listDocByCase = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -325,7 +326,7 @@ const createDoc = async (req, res) => {
         const document = await new_document.save();
         if (!document) {
             return res.json({
-                error: 'No document uploaded'
+                error: messages.NO_DOCUMENT_UPLOADED
             })
         }
         if (req_msg_id && req_msg_id !== "undefined") {
@@ -342,7 +343,7 @@ const createDoc = async (req, res) => {
                 })
         }
 
-        await saveNotifications(`${uploadedByUserName.username} has uploaded new document in this case: ${relatedCaseName.case_title}`, can_be_access_by, "addDocument",  `/php/document/view.php?id=${document._id}&cid=${relatedCaseName._id}`)
+        await saveNotifications(`${uploadedByUserName.username} قام برفع مستند جديد في هذه القضية: ${relatedCaseName.case_title}`, can_be_access_by, "addDocument",  `/php/document/view.php?id=${document._id}&cid=${relatedCaseName._id}`)
 
 
         return res.status(200).send(new_document)
@@ -355,7 +356,7 @@ const createDoc = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -385,7 +386,7 @@ const deleteDoc = async (req, res) => {
         const deletedDocument = await Document.findOneAndDelete(filter)
 
         if (!deletedDocument)
-            throw new DataNotExistError("Document not exist")
+            throw new DataNotExistError(messages.DOCUMENT_NOT_EXIST)
 
         // TODO: delete file from googledrive
         const authClient = await googleDrive.authorize()
@@ -397,7 +398,7 @@ const deleteDoc = async (req, res) => {
         let deletedCaseName = await Case.findById(new mongoose.Types.ObjectId(caseId)).select(['case_title']);
         console.log(deletedCaseName);
         
-        await saveNotifications(`${deletedByUserName.username} has deleted ${deletedDocument.doc_title} (document) in this case: ${deletedCaseName.case_title}`, deletedDocument.can_be_access_by, "deleteDocument", `/php/case/view.php?cid=${caseId}`)
+        await saveNotifications(`${deletedByUserName.username} قام بحذف ${deletedDocument.doc_title} (مستند) في هذه القضية: ${deletedCaseName.case_title}`, deletedDocument.can_be_access_by, "deleteDocument", `/php/case/view.php?cid=${caseId}`)
 
         return res.status(200).send(deletedDocument)
     } catch (error) {
@@ -409,7 +410,7 @@ const deleteDoc = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {

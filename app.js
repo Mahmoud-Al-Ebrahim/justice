@@ -23,10 +23,10 @@ const { requireAuth } = require('./middlewares/authMiddleware');
 
 mongoose.connect(process.env.MONGO_URL)
   .then(() => {
-    console.log('Database connected');
+    console.log('تم الاتصال بقاعدة البيانات');
   })
   .catch((e) => {
-    console.log('Database not connected due to error, ', e);
+    console.log('فشل الاتصال بقاعدة البيانات بسبب خطأ، ', e);
   });
 
 const app = express();
@@ -40,7 +40,7 @@ app.use(cors({ credentials: true, origin: process.env.CLIENT_URL }));
 const PORT = process.env.SERVER_PORT || 9000;
 
 const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`الخادم يعمل على المنفذ ${PORT}`);
 });
 // All routes
 app.use('/api/appointments', appointment);
@@ -66,13 +66,13 @@ const onConnection = (socket) => {
 io.use(function (socket, next) {
   if (socket.handshake.query && socket.handshake.query.token) {
     jwt.verify(socket.handshake.query.token, process.env.JWT_SECRET, function (err, decoded) {
-      if (err) return next(new Error('Authentication error'));
+      if (err) return next(new Error('خطأ في المصادقة'));
       socket.decoded = decoded;
       next();
     });
   }
   else {
-    next(new Error('Authentication error'));
+    next(new Error('خطأ في المصادقة'));
   }
 }).on('connection', onConnection);
 

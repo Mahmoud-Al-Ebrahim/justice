@@ -11,31 +11,31 @@ const validateArrayLength = (value) => {
 const caseSchema = new Schema({
     case_title: {
         type: String,
-        required: [true, "Case_title should not be null"],
+        required: [true, "عنوان القضية مطلوب"],
     },
     case_created_by: {
         type: String,
-        required: [true, "Case_created_by should not be null"],
+        required: [true, "منشئ القضية مطلوب"],
     },
     case_description: {
         type: String,
-        required: [true, "Case_description should not be null"],
+        required: [true, "وصف القضية مطلوب"],
     },
     case_type: {
         type: String,
-        required: [true, "Case_type should not be null"],
+        required: [true, "نوع القضية مطلوب"],
     },
     case_status: {
         type: String,
-        required: [true, "Case_status should not be null"],
+        required: [true, "حالة القضية مطلوبة"],
     },
     case_priority: {
         type: String,
-        required: [true, "Case_priority should not be null"],
+        required: [true, "أولوية القضية مطلوبة"],
     },
     case_total_billed_hour: {
         type: Number,
-        required: [true, "Case_total_billed_hour should not be null"],
+        required: [true, "إجمالي ساعات الفوترة مطلوب"],
     },
     case_member_list: {
         type: [
@@ -55,7 +55,7 @@ const caseSchema = new Schema({
             }],
         validate: {
             validator: validateArrayLength,
-            message: "Case_member_list should not be empty array"
+            message: "قائمة أعضاء القضية لا يمكن أن تكون فارغة"
         }
     }
 })

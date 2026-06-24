@@ -3,6 +3,7 @@ const Message = require('../models/message');
 const mongoose = require('mongoose');
 const getUserInfo = require('../helpers/getUserInfo');
 const { DataNotExistError, UserNotSameError, DoNotHaveAccessError } = require('../helpers/exceptions');
+const messages = require('../helpers/messages');
 
 const checkCaseAccess = async (userId, type, caseId) => {
     // let cases;
@@ -65,7 +66,7 @@ const createCase = async (req, res) => {
             const cases = await new_cases.save();
             if (!cases) {
                 return res.json({
-                    error: 'No cases uploaded'
+                    error: messages.NO_CASE_UPLOADED
                 })
             }
     
@@ -73,7 +74,7 @@ const createCase = async (req, res) => {
         }
         else {
             return res.status(403).json({
-                error: 'Permission denied. Only admin can create case.'
+                error: messages.CASE_CREATE_DENIED
             });
         }
     } catch (error) {
@@ -87,7 +88,7 @@ const createCase = async (req, res) => {
             }
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         }
@@ -123,7 +124,7 @@ const createCase = async (req, res) => {
 //         );
 
 //         if (!updatedCase) {
-//             return res.status(404).json({ error: 'Case not found' });
+//             return res.status(404).json({ error: messages.CASE_NOT_FOUND });
 //         }
 
 //         return res.status(200).json(updatedCase); // Return the updated case
@@ -136,7 +137,7 @@ const createCase = async (req, res) => {
 //                 validationErrors[field] = error.errors[field].message;
 //             }
 //             return res.status(400).json({
-//                 error: 'Validation failed',
+//                 error: messages.VALIDATION_FAILED,
 //                 validationErrors,
 //             });
 //         } else {
@@ -174,16 +175,16 @@ const editCase = async (req, res) => {
                 );
     
                 if (!updatedCase) {
-                    return res.status(404).json({ error: 'Case not found' });
+                    return res.status(404).json({ error: messages.CASE_NOT_FOUND });
                 }
     
                 return res.status(200).json(updatedCase); // Return the updated case
             } else {
                 // User does not have the required access
-                return res.status(403).json({ error: 'Permission denied. Only admin or partners or associates can edit case.' });
+                return res.status(403).json({ error: messages.CASE_EDIT_DENIED });
             }
         } else {
-            return res.status(404).json({ error: 'Case not found' });
+            return res.status(404).json({ error: messages.CASE_NOT_FOUND });
         }
 
     } catch (error) {
@@ -195,7 +196,7 @@ const editCase = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
             }
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -226,7 +227,7 @@ const readCase = async (req, res) => {
             )
 
         if (!cases || cases.length === 0)
-            throw new DataNotExistError("Case not exist")
+            throw new DataNotExistError(messages.CASE_NOT_EXIST)
         return res.status(200).send(cases)
 
     } catch (error) {
@@ -238,7 +239,7 @@ const readCase = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -259,7 +260,7 @@ const readCaseMessage = async (req, res) => {
         await checkCaseAccess(userId, type, caseId)
         const caseMessages = await Message.findOne({"message_case_id": caseId})
         if (!caseMessages)
-            throw new DataNotExistError("Case not exist")
+            throw new DataNotExistError(messages.CASE_NOT_EXIST)
 
         return res.status(200).send(caseMessages)
     } catch (error) {
@@ -271,7 +272,7 @@ const readCaseMessage = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -298,7 +299,7 @@ const listCase = async (req, res) => {
             )
 
         if (!cases || cases.length === 0)
-            throw new DataNotExistError("Case not exist")
+            throw new DataNotExistError(messages.CASE_NOT_EXIST)
         return res.status(200).send(cases)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
@@ -311,7 +312,7 @@ const listCase = async (req, res) => {
             }
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         }
@@ -352,7 +353,7 @@ const listCase = async (req, res) => {
 //         }
 
 //         return res.status(200).json({
-//             message: 'Case deleted successfully',
+//             message: messages.CASE_DELETED,
 //             deletedCase
 //         });
 //     } catch (error) {
@@ -367,7 +368,7 @@ const listCase = async (req, res) => {
 //             }
 
 //             return res.status(400).json({
-//                 error: 'Validation failed',
+//                 error: messages.VALIDATION_FAILED,
 //                 validationErrors,
 //             });
 //         } else {
@@ -389,7 +390,7 @@ const deleteCase = async (req, res) => {
         // Check if the user is an admin
         if (type !== "admin" && type !== "partner") {
             return res.status(403).json({
-                error: 'Permission denied. Only admin can delete a case.'
+                error: messages.CASE_DELETE_DENIED
             });
         }
 
@@ -398,12 +399,12 @@ const deleteCase = async (req, res) => {
 
         if (!deletedCase) {
             return res.status(404).json({
-                error: 'Case not found'
+                error: messages.CASE_NOT_FOUND
             });
         }
 
         return res.status(200).json({
-            message: 'Case deleted successfully',
+            message: messages.CASE_DELETED,
             deletedCase
         });
     } catch (error) {
@@ -418,7 +419,7 @@ const deleteCase = async (req, res) => {
             }
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {

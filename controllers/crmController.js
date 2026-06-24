@@ -11,38 +11,42 @@ const unlinkAsync = promisify(fs.unlink)
 const { userInfo } = require('os');
 const { cloudinary } = require('../config/cloudinary');
 const { hashPassword, comparePassword } = require('../helpers/auth')
+const messages = require('../helpers/messages');
 
 const createUser = async (req, res) => {
-    // const {_id} = getUserInfo(res)
     const {
         username,
         email,
         password,
         avatar_url,
-        type
+        type,
+        number,
+        address
     } = req.body
 
     try {
+        const hashedPassword = await hashPassword(password)
         const new_user = new User({
             username,
             email,
-            password,
-            avatar_url,
-            type
+            password: hashedPassword,
+            avatar_url: avatar_url || "",
+            type,
+            number: number || "",
+            address: address || ""
         });
 
         const new_entered_user = await new_user.save();
 
         if (!new_entered_user) {
             return res.json({
-                error: 'No User uploaded'
+                error: messages.NO_USER_UPLOADED
             })
         }
 
-        return res.status(200).send(new_user)
+        return res.status(200).send(new_entered_user)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
 
             for (const field in error.errors) {
@@ -51,7 +55,7 @@ const createUser = async (req, res) => {
             }
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         }
@@ -79,7 +83,7 @@ const readUser = async (req, res) => {
             }, { new: true }
         )
         if (!requestedUser)
-            throw new DataNotExistError("User not exist")
+            throw new DataNotExistError(messages.USER_NOT_EXIST)
 
         // update the doc
 
@@ -93,7 +97,7 @@ const readUser = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -112,7 +116,7 @@ const listSelectedUser = async (req, res) => {
     try {
         const selectedUser = await User.findById(new mongoose.Types.ObjectId(id));
         if (!selectedUser)
-            throw new DataNotExistError("User does not exist")
+            throw new DataNotExistError(messages.USER_NOT_EXIST)
 
         return res.status(200).send(selectedUser)
     } catch (error) {
@@ -124,7 +128,7 @@ const listSelectedUser = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -141,7 +145,7 @@ const listUser = async (req, res) => {
         const allUser = await User.find({ type: "client" })
 
         if (!allUser)
-            throw new DataNotExistError("User does not exist")
+            throw new DataNotExistError(messages.USER_NOT_EXIST)
 
         return res.status(200).send(allUser)
     } catch (error) {
@@ -153,7 +157,7 @@ const listUser = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -170,7 +174,7 @@ const listEmployee = async (req, res) => {
         const allUser = await User.find({ type: {$ne: "client"} })
 
         if (!allUser)
-            throw new DataNotExistError("User does not exist")
+            throw new DataNotExistError(messages.USER_NOT_EXIST)
 
         return res.status(200).send(allUser)
     } catch (error) {
@@ -182,7 +186,7 @@ const listEmployee = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -234,7 +238,7 @@ const updateUser = async (req, res) => {
         )
 
         if (!selectedUser) {
-            throw new DataNotExistError("User not exist")
+            throw new DataNotExistError(messages.USER_NOT_EXIST)
         }
 
         return res.status(200).send(selectedUser)
@@ -247,7 +251,7 @@ const updateUser = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -283,14 +287,14 @@ const updatePassword = async (req, res) => {
         const user = await User.findOne({ _id: new mongoose.Types.ObjectId(selectUserID) });
         if (!user) {
             return res.json({
-                error: 'No user found'
+                error: messages.NO_USER_FOUND
             })
         }
 
         const match = await comparePassword(oldpassword, user.password)
 
         if (!match) {
-            throw new PasswordNotSameError("Password Not Same")
+            throw new PasswordNotSameError(messages.PASSWORD_NOT_SAME)
         }
         else {
             const updatedUser = await User.findOneAndUpdate({
@@ -298,7 +302,7 @@ const updatePassword = async (req, res) => {
             }, { password: hashedNewPassword })
 
             if (!updatedUser) {
-                throw new PasswordNotSameError("Password Not Same")
+                throw new PasswordNotSameError(messages.PASSWORD_NOT_SAME)
             }
 
             return res.status(200).send(updatedUser)
@@ -312,7 +316,7 @@ const updatePassword = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -334,7 +338,7 @@ const deleteUser = async (req, res) => {
 
         const deletedUser = await User.findByIdAndDelete(selectUserID)
         if (!deletedUser)
-            throw new DataNotExistError("User does not exist")
+            throw new DataNotExistError(messages.USER_NOT_EXIST)
 
         return res.status(200).send(deletedUser)
     } catch (error) {
@@ -346,7 +350,7 @@ const deleteUser = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {

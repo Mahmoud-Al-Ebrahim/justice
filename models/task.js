@@ -13,7 +13,10 @@ const taskSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['todo', 'in_progress', 'done'],
+        enum: {
+            values: ['todo', 'in_progress', 'done'],
+            message: 'حالة المهمة يجب أن تكون todo أو in_progress أو done'
+        },
         default: 'todo'
     },
     assignedBy: {

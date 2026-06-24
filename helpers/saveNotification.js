@@ -25,7 +25,7 @@ const saveNotifications = async (message, recipientIds, notiType, clickTo) => {
     if (!noti) {
         console.log("6");
 
-        throw new ServerError("Notification not sent")
+        throw new ServerError("لم يتم إرسال الإشعار")
     }
 }
 

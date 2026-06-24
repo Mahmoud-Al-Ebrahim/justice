@@ -1,5 +1,6 @@
 const { DataNotExistError } = require('../helpers/exceptions');
 const getUserInfo = require('../helpers/getUserInfo');
+const messages = require('../helpers/messages');
 const Appointment = require('../models/appointment');
 const User = require('../models/user');
 const saveNotifications = require('../helpers/saveNotification');
@@ -25,7 +26,7 @@ const retrieveAllAppointments = async () => {
 
     return allAppointments;
   } catch (error) {
-    throw new Error(`Error retrieving appointments: ${error.message}`);
+    throw new Error(`${messages.APPOINTMENTS_RETRIEVE_ERROR}: ${error.message}`);
   }
 };
 
@@ -37,12 +38,12 @@ const retrieveAppointmentByID = async (appointmentID) => {
     const appointment = await Appointment.findById(appointmentID);
 
     if (!appointment) {
-      throw new Error('Appointment not found');
+      throw new Error(messages.APPOINTMENT_NOT_FOUND);
     }
 
     return appointment;
   } catch (error) {
-    throw new Error(`Error retrieving specific appointment: ${error.message}`);
+    throw new Error(`${messages.APPOINTMENT_RETRIEVE_ERROR}: ${error.message}`);
   }
 }
 
@@ -57,12 +58,12 @@ const updateAppointmentById = async (appointmentId, updatedAppointmentData) => {
     );
 
     if (result.nModified === 0) {
-      throw new Error('Appointment not found or no modifications were made');
+      throw new Error(messages.APPOINTMENT_NOT_MODIFIED);
     }
 
     //return result;
   } catch (error) {
-    throw new Error(`Error updating appointment: ${error.message}`);
+    throw new Error(`${messages.APPOINTMENT_UPDATE_ERROR}: ${error.message}`);
   }
 };
 
@@ -76,12 +77,12 @@ const updateAppointmentStatusById = async (appointmentId, newStatus) => {
     );
 
     if (result.nModified === 0) {
-      throw new Error('Appointment not found or no modifications were made');
+      throw new Error(messages.APPOINTMENT_NOT_MODIFIED);
     }
 
     // No need to return the result object if it's not used elsewhere
   } catch (error) {
-    throw new Error(`Error updating appointment status: ${error.message}`);
+    throw new Error(`${messages.APPOINTMENT_STATUS_ERROR}: ${error.message}`);
   }
 };
 
@@ -95,12 +96,12 @@ const updateAttendeeResponse = async (appointmentId, attendeeName, newResponse) 
     );
 
     if (result.nModified === 0) {
-      throw new Error('Appointment not found or no modifications were made');
+      throw new Error(messages.APPOINTMENT_NOT_MODIFIED);
     }
 
     // No need to return the result object if it's not used elsewhere
   } catch (error) {
-    throw new Error(`Error updating attendee response: ${error.message}`);
+    throw new Error(`${messages.APPOINTMENT_RESPONSE_ERROR}: ${error.message}`);
   }
 };
 
@@ -116,7 +117,7 @@ const retrieveAllUsersExceptCurrentUser = async (excludeName) => {
 
     return userNames;
   } catch (error) {
-    throw new Error(`Error retrieving user names: ${error.message}`);
+    throw new Error(`${messages.USERS_RETRIEVE_ERROR}: ${error.message}`);
   }
 }
 
@@ -139,10 +140,10 @@ const getListOfUserID = async (usernameList) => {
       if (result) {
         resultsArray.push(result._id);
       } else {
-        console.log(`No matching document found for username: ${username}`);
+        console.log(`لم يتم العثور على مستند مطابق لاسم المستخدم: ${username}`);
       }
     } catch (error) {
-      console.error(`Error querying for username ${username}:`, error);
+      console.error(`خطأ في الاستعلام عن اسم المستخدم ${username}:`, error);
     }
   }));
 
@@ -200,19 +201,19 @@ const generateMessage = (appointment, messageType) => {
 
   switch (messageType) {
     case "newAppointment":
-      return `${appointment.creator} has sent a new appointment invitation to you: ${titleAndTime}`;
+      return `${appointment.creator} أرسل إليك دعوة موعد جديدة: ${titleAndTime}`;
         
     case "updateAppointment":
-      return `${appointment.creator} has updated the appointment: ${titleAndTime}`;
+      return `${appointment.creator} قام بتحديث الموعد: ${titleAndTime}`;
     
     case "removeAttendees":
-      return `${appointment.creator} has removed you from the appointment: ${titleAndTime}`;
+      return `${appointment.creator} قام بإزالتك من الموعد: ${titleAndTime}`;
     
     case "cancelAppointment":
-      return `${appointment.creator} has cancelled the appointment: ${titleAndTime}`;
+      return `${appointment.creator} قام بإلغاء الموعد: ${titleAndTime}`;
     
     default:
-      return "Wrong Appointment Message. Please report to administrator";
+      return messages.APPOINTMENT_MESSAGE_ERROR;
   }
 }
 
@@ -276,7 +277,7 @@ const getAppointments = async (req, res) => {
     })
   } catch (error) {
     return res.status(400).json({
-      error: 'Erorr sending appointments to frontend:',
+      error: messages.APPOINTMENTS_SEND_ERROR,
       message: error.message
     });
   }
@@ -297,7 +298,7 @@ const getUserList = async (req, res) => {
 
   } catch (error) {
     return res.status(400).json({
-      error: 'Error sending user list to frontend:',
+      error: messages.USER_LIST_SEND_ERROR,
       message: error.message
     });
   }
@@ -345,7 +346,7 @@ const createAppointment = async (req, res) => {
     });
   } catch (error) {
     return res.status(400).json({
-      error: 'Error saving or processing appointment:',
+      error: messages.APPOINTMENT_SAVE_ERROR,
       message: error.message
     });
   }
@@ -368,7 +369,7 @@ const getSpecificAppointment = async (req, res) => {
 
   } catch (error) {
     return res.status(400).json({
-      error: 'Error sending specific appointment to frontend:',
+      error: messages.APPOINTMENT_FETCH_ERROR,
       message: error.message
     });
   }
@@ -426,7 +427,7 @@ const updateAppointment = async (req, res) => {
 
   } catch (error) {
     return res.status(400).json({
-      error: 'Error updating appointment:',
+      error: messages.APPOINTMENT_UPDATE_ERROR,
       message: error.message
     });
   }
@@ -473,7 +474,7 @@ const cancelAppointment = async (req, res) => {
     
   } catch (error) {
     return res.status(400).json({
-      error: 'Error updating appointment status:',
+      error: messages.APPOINTMENT_STATUS_ERROR,
       message: error.message
     });
   }
@@ -511,11 +512,11 @@ const updateUserResponse = async (req, res) => {
     let titleAndTime = titleTimeMessage(respondedAppointment);
 
     if(userResponse.response === "accepted"){
-      const message = `${name} has accepted the appointment: ${titleAndTime}`;
+      const message = `${name} قبل الموعد: ${titleAndTime}`;
       await saveNotifications(message, creatorID, "acceptAppointment", `/php/appointment`);
     }
     else{
-      const message = `${name} has declined the appointment: ${titleAndTime}`;
+      const message = `${name} رفض الموعد: ${titleAndTime}`;
       await saveNotifications(message, creatorID, "declineAppointment", `/php/appointment`);
     }
     
@@ -528,7 +529,7 @@ const updateUserResponse = async (req, res) => {
     
   } catch (error) {
     return res.status(400).json({
-      error: 'Error updating attendee response:',
+      error: messages.APPOINTMENT_RESPONSE_ERROR,
       message: error.message
     });
   }

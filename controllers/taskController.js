@@ -3,6 +3,7 @@ const User = require('../models/user');
 const Task = require('../models/task'); // Import the Task model
 const getUserInfo = require('../helpers/getUserInfo');
 const saveNotifications = require('../helpers/saveNotification');
+const messages = require('../helpers/messages');
 
 // 创建任务
 const createTask = async (req, res) => {
@@ -38,11 +39,11 @@ const createTask = async (req, res) => {
             acceptanceCriteria
         });
         const newTask = await task.save();
-        await saveNotifications(`${name} has assigned a new task for you: ${title}`, assignedToId, "assignedTask", `/php/task`)
+        await saveNotifications(`${name} أسند إليك مهمة جديدة: ${title}`, assignedToId, "assignedTask", `/php/task`)
 
         res.status(200).json(newTask);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: messages.SERVER_ERROR });
     }
 };
 
@@ -52,7 +53,7 @@ const getTasks = async (req, res) => {
         const tasks = await Task.find();
         res.status(200).json(tasks);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: messages.SERVER_ERROR });
     }
 };
 
@@ -65,7 +66,7 @@ const retrieveAllUsersExceptCurrentUser = async (excludeName) => {
 
         return userNames;
     } catch (error) {
-        throw new Error(`Error retrieving user names: ${error.message}`);
+        throw new Error(`${messages.USERS_RETRIEVE_ERROR}: ${error.message}`);
     }
 }
 
@@ -80,7 +81,7 @@ const getUserList = async (req, res) => {
 
     } catch (error) {
         return res.status(400).json({
-            error: 'Error sending user list to frontend:',
+            error: messages.USER_LIST_SEND_ERROR,
             message: error.message
         });
     }
@@ -214,7 +215,7 @@ const getTasksForUser = async (req, res) => {
         res.status(200).json(test);
     } catch (error) {
         console.log(error.message);
-        res.status(400).json({ error: error.message });
+        res.status(400).json({ error: messages.SERVER_ERROR });
     }
 };
 
@@ -294,7 +295,7 @@ const getTask = async (req, res) => {
                 }
             }
         ])
-        if (!task) return res.status(404).json({ error: 'Task not found' });
+        if (!task) return res.status(404).json({ error: messages.TASK_NOT_FOUND });
 
         // 检查当前用户是否有权限查看该任务
         // const currentUser = req.user; // 从 req.user 中获取当前用户
@@ -303,7 +304,7 @@ const getTask = async (req, res) => {
         // }
         res.status(200).json(task[0]);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: messages.SERVER_ERROR });
     }
 };
 
@@ -314,18 +315,18 @@ const updateStatus = async (req, res) => {
     try {
         const task = await Task.findByIdAndUpdate(_id, { status });
         if (!task) {
-            return res.status(404).json({ message: 'Task not found' });
+            return res.status(404).json({ message: messages.TASK_NOT_FOUND });
         }
         let notiMsg
-        if(status === "working") notiMsg = "currently working on task assigned by you:"
-        else if(status==="done") notiMsg = "finished task assigned by you:"
-        else  notiMsg = "moved the task assigned by you back to TODO:"
+        if(status === "working") notiMsg = "يعمل حالياً على المهمة المسندة إليك:"
+        else if(status==="done") notiMsg = "أنهى المهمة المسندة إليك:"
+        else  notiMsg = "أعاد المهمة المسندة إليك إلى القائمة:"
         
         await saveNotifications(`${name} ${notiMsg} ${task.title}`, [task.assignedBy], "finishedTask", `/php/task`)
 
         res.status(200).json(task);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: messages.SERVER_ERROR });
     }
 }
 
@@ -364,7 +365,7 @@ const updateTask = async (req, res) => {
         // if (!task) return res.status(404).json({ error: 'Task not found' });
         // res.status(200).json(task);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: messages.SERVER_ERROR });
     }
 };
 
@@ -374,11 +375,11 @@ const deleteTask = async (req, res) => {
         const { id } = req.params;
         const task = await Task.findByIdAndDelete(id);
         if (!task) {
-            return res.status(404).json({ message: 'Task not found' });
+            return res.status(404).json({ message: messages.TASK_NOT_FOUND });
         }
-        res.status(200).json({ message: 'Task deleted' });
+        res.status(200).json({ message: messages.TASK_DELETED });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: messages.SERVER_ERROR });
     }
 };
 

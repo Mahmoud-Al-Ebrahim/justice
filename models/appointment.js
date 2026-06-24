@@ -18,7 +18,10 @@ const appointmentSchema = new Schema({
       },
       response: {
         type: String,
-        enum: ['accepted', 'pending', 'declined'],    // The valid value for the response
+        enum: {
+          values: ['accepted', 'pending', 'declined'],
+          message: 'الرد يجب أن يكون accepted أو pending أو declined'
+        },
         required: true,
       },
     },
@@ -47,7 +50,10 @@ const appointmentSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ['scheduled', 'cancelled'],   // The valid value for the status
+    enum: {
+      values: ['scheduled', 'cancelled'],
+      message: 'حالة الموعد يجب أن تكون scheduled أو cancelled'
+    },
     required: true,
   },
 });

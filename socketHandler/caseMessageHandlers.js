@@ -10,7 +10,7 @@ const caseMessageHandlers = (io, socket) => {
 
     const joinRoom = (caseId) => {
         socket.join(caseId);
-        console.log(`User joined room: ${caseId}`);
+        console.log(`انضم المستخدم إلى الغرفة: ${caseId}`);
     }
 
     const chatMessage = async (data) => {
@@ -37,7 +37,7 @@ const caseMessageHandlers = (io, socket) => {
     }
 
     const disconnect = () => {
-        console.log('User disconnected');
+        console.log('تم قطع اتصال المستخدم');
     }
 
     // Handling joining a case room
@@ -65,12 +65,12 @@ const writeMessageBatchToDB = () => {
             "message_list": [...messageEachCase]
           }
         }, { new: true, upsert: true }).then(() => {
-          console.log('Batch written to MongoDB');
+          console.log('تم كتابة الدفعة إلى MongoDB');
           // Clear the batch after writing
           messageBatch = {};
         })
           .catch((err) => {
-            console.error('Error writing batch to MongoDB:', err);
+            console.error('خطأ في كتابة الدفعة إلى MongoDB:', err);
           });
       }
   

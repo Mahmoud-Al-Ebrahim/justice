@@ -5,8 +5,10 @@ const Notification = require('../models/notification')
 const getUserInfo = require('../helpers/getUserInfo');
 // const Appointment = require('../models/appointment')
 const mongoose = require('mongoose');
+const { DataNotExistError } = require('../helpers/exceptions');
 const { hashPassword, comparePassword } = require('../helpers/auth')
 const jwt = require('jsonwebtoken');
+const messages = require('../helpers/messages');
 
 const dashboardStatistic = async (req, res) => {
     const { userId, type } = getUserInfo(res)
@@ -91,7 +93,7 @@ const dashboardStatistic = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {
@@ -134,7 +136,7 @@ const getNotifications = async (req, res) => {
           })
 
         if (!allNotifications)
-            throw new DataNotExistError("Notifications not exist")
+            throw new DataNotExistError(messages.NOTIFICATIONS_NOT_EXIST)
 
         return res.status(200).send([...unreadNoti, ...readNoti])
     } catch (error) {
@@ -146,7 +148,7 @@ const getNotifications = async (req, res) => {
                 validationErrors[field] = error.errors[field].message;
 
             return res.status(400).json({
-                error: 'Validation failed',
+                error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         } else {

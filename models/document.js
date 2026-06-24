@@ -49,7 +49,7 @@ const documentSchema = new Schema({
     },
     uploaded_at: {
         type: String,
-        required: [true, "Uploaded_at is required"],
+        required: [true, "تاريخ الرفع مطلوب"],
     },
     last_accessed_at: {
         type: [{
@@ -72,34 +72,34 @@ const documentSchema = new Schema({
     },
     doc_title: {
         type: String,
-        required: [true, "Doc_title is required"],
+        required: [true, "عنوان المستند مطلوب"],
     },
     uploaded_by: {
         type: String,
-        required: [true, "Uploaded_by is required"],
+        required: [true, "رافع المستند مطلوب"],
         validate: {
             validator: validateObjectId,
-            message: props => `Uploaded_by is null or is not a valid Object ID`
+            message: props => `رافع المستند غير صالح أو معرف غير صحيح`
         },
     },
     can_be_access_by: {
         type: [String],
-        required: [true, "Can_be_accessed_by is required"],
+        required: [true, "قائمة من يمكنهم الوصول مطلوبة"],
         validate: [{
             validator: validateObjectId,
-            message: props => `Can_be_accessed_by is null or is not a valid Object ID`
+            message: props => `معرف الوصول غير صالح`
         }, {
             validator: validateArrayLength,
-            message: props => `Can_be_accessed_by cannot be empty array`
+            message: props => `قائمة من يمكنهم الوصول لا يمكن أن تكون فارغة`
         }],
     },
     doc_case_related: {
         type: String,
-        required: [true, "Doc_case_related is required"],
+        required: [true, "القضية المرتبطة مطلوبة"],
     },
     doc_description: {
         type: String,
-        required: [true, "Doc_description is required"],
+        required: [true, "وصف المستند مطلوب"],
     },
     doc_requested: {
         type: String
