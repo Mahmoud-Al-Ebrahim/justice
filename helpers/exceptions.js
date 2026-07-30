@@ -1,41 +1,41 @@
 class DataNotExistError extends Error {
     constructor(message) {
       super(message); 
-      this.name = "DataNotExistError"; 
+      this.name = "البيانات غير موجودة"; 
     }
   }
   class UserNotSameError extends Error {
     constructor(message) {
       super(message); 
-      this.name = "UserNotSameError"; 
+      this.name = "المستخدم غير مطابق"; 
     }
   }
 
   class ServerError extends Error {
     constructor(message) {
       super(message); 
-      this.name = "ServerError"; 
+      this.name = "خطأ في الخادم"; 
     }
   }
 
   class DoNotHaveAccessError extends Error {
     constructor(message) {
       super(message); 
-      this.name = "DoNotHaveAccessError"; 
+      this.name = "ليس لديك صلاحية الوصول"; 
     }
   }
 
   class PasswordNotSameError extends Error {
     constructor(message) {
       super(message); 
-      this.name = "PasswordNotSameError"; 
+      this.name = "كلمة المرور غير مطابقة"; 
     }
   }
 
   class UnauthorizedAccessError extends Error {
     constructor(message) {
       super(message); 
-      this.name = "UnauthorizedAccessError"; 
+      this.name = "وصول غير مصرح به"; 
     }
   }
 

@@ -45,19 +45,15 @@ const createCase = async (req, res) => {
         case_member_list
     } = req.body
 
-    // check user is member of a cases or not
-    // const current_cases = await Case.find({ cases_member_list: /john/i }, 'name friends').exec();
-
-    // if no, return error
-
-    // else continue
-
-    // TODO: upload doc to cloudinary
+    if (!case_title || !case_description || !case_type || !case_status || !case_priority || !case_total_billed_hour || !case_member_list) {
+        return res.status(400).json({
+            error: "جميع حقول القضية مطلوبة"
+        })
+    }
 
     console.log(type);
 
     try {
-        // Check if the user is an admin
         if (type === "admin" || type === "partner") {
             const new_cases = new Case({
                 case_title, case_created_by: userInfo.userId, case_description, case_type, case_status, case_priority, case_total_billed_hour, case_member_list
@@ -65,7 +61,7 @@ const createCase = async (req, res) => {
     
             const cases = await new_cases.save();
             if (!cases) {
-                return res.json({
+                return res.status(400).json({
                     error: messages.NO_CASE_UPLOADED
                 })
             }
@@ -79,7 +75,6 @@ const createCase = async (req, res) => {
         }
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
 
             for (const field in error.errors) {
@@ -92,6 +87,10 @@ const createCase = async (req, res) => {
                 validationErrors,
             });
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 
 }
@@ -151,7 +150,7 @@ const createCase = async (req, res) => {
 
 const editCase = async (req, res) => {
     const { userId, type } = getUserInfo(res);
-    const caseId = req.params.id; // Extracting the case ID from the request parameters
+    const caseId = req.params.id;
 
     console.log(type);
 
@@ -160,27 +159,22 @@ const editCase = async (req, res) => {
 
         console.log(caseAccess);
 
-        //Check if the case exist and is accessible by the user
         if(caseAccess){
-            // Check if the user has access to edit the case
             if (type === 'admin' || type === 'partner' || (type === 'associates' && caseAccess)) {
-                // Assuming req.body contains updated information for the case
                 const updatedData = req.body;
     
-                // Find the existing case by ID and update its information
                 const updatedCase = await Case.findByIdAndUpdate(
                     caseId,
                     { $set: updatedData },
-                    { new: true } // Return the updated document
+                    { new: true }
                 );
     
                 if (!updatedCase) {
                     return res.status(404).json({ error: messages.CASE_NOT_FOUND });
                 }
     
-                return res.status(200).json(updatedCase); // Return the updated case
+                return res.status(200).json(updatedCase);
             } else {
-                // User does not have the required access
                 return res.status(403).json({ error: messages.CASE_EDIT_DENIED });
             }
         } else {
@@ -188,9 +182,7 @@ const editCase = async (req, res) => {
         }
 
     } catch (error) {
-        // Handle potential errors
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
             for (const field in error.errors) {
                 validationErrors[field] = error.errors[field].message;
@@ -199,12 +191,11 @@ const editCase = async (req, res) => {
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message,
-            });
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 };
 
@@ -232,9 +223,7 @@ const readCase = async (req, res) => {
 
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
 
@@ -242,12 +231,11 @@ const readCase = async (req, res) => {
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 
 }
@@ -265,9 +253,7 @@ const readCaseMessage = async (req, res) => {
         return res.status(200).send(caseMessages)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
 
@@ -275,12 +261,11 @@ const readCaseMessage = async (req, res) => {
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
@@ -303,19 +288,20 @@ const listCase = async (req, res) => {
         return res.status(200).send(cases)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors) {
                 if (!error.errors[field].message.includes("Cast to [ObjectId] failed for value"))
                     validationErrors[field] = error.errors[field].message;
             }
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
@@ -387,14 +373,12 @@ const deleteCase = async (req, res) => {
     console.log(type);
 
     try {
-        // Check if the user is an admin
         if (type !== "admin" && type !== "partner") {
             return res.status(403).json({
                 error: messages.CASE_DELETE_DENIED
             });
         }
 
-        // For admin, directly delete by caseId
         const deletedCase = await Case.findByIdAndDelete(caseId);
 
         if (!deletedCase) {
@@ -409,25 +393,21 @@ const deleteCase = async (req, res) => {
         });
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors) {
                 if (!error.errors[field].message.includes("Cast to [ObjectId] failed for value")) {
                     validationErrors[field] = error.errors[field].message;
                 }
             }
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            return res.status(400).json({
-                error: error.name,
-                message: error.message
-            });
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 

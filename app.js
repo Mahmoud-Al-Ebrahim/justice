@@ -21,7 +21,10 @@ const User = require('./models/user')
 const crmRoute = require('./routes/crm');
 const { requireAuth } = require('./middlewares/authMiddleware');
 
-mongoose.connect(process.env.MONGO_URL)
+mongoose.connect(process.env.MONGO_URL, {
+  serverSelectionTimeoutMS: 120000, // 2 minutes timeout
+  connectTimeoutMS: 120000 // 2 minutes timeout
+})
   .then(() => {
     console.log('تم الاتصال بقاعدة البيانات');
   })
@@ -42,6 +45,8 @@ const PORT = process.env.SERVER_PORT || 9000;
 const server = app.listen(PORT, () => {
   console.log(`الخادم يعمل على المنفذ ${PORT}`);
 });
+
+server.timeout = 120000; // 2 minutes timeout
 // All routes
 app.use('/api/appointments', appointment);
 app.use('/api/documents', document);
@@ -56,7 +61,9 @@ const io = require('socket.io')(server, {
     origin: process.env.CLIENT_URL,
     allowedHeaders: ["my-custom-header"],
     credentials: true
-  }
+  },
+  pingTimeout: 120000, // 2 minutes
+  pingInterval: 120000 // 2 minutes
 });
 
 const onConnection = (socket) => {

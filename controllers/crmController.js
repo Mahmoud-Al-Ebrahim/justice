@@ -24,6 +24,12 @@ const createUser = async (req, res) => {
         address
     } = req.body
 
+    if (!username || !email || !password || !type) {
+        return res.status(400).json({
+            error: "اسم المستخدم والبريد الإلكتروني وكلمة المرور ونوع المستخدم مطلوبون"
+        })
+    }
+
     try {
         const hashedPassword = await hashPassword(password)
         const new_user = new User({
@@ -39,36 +45,40 @@ const createUser = async (req, res) => {
         const new_entered_user = await new_user.save();
 
         if (!new_entered_user) {
-            return res.json({
+            return res.status(400).json({
                 error: messages.NO_USER_UPLOADED
             })
         }
 
         return res.status(200).send(new_entered_user)
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({
+                error: "البريد الإلكتروني أو رقم الهاتف أو العنوان مسجل بالفعل"
+            })
+        }
         if (error instanceof mongoose.Error.ValidationError) {
             const validationErrors = {};
-
             for (const field in error.errors) {
                 if (!error.errors[field].message.includes("Cast to [ObjectId] failed for value"))
                     validationErrors[field] = error.errors[field].message;
             }
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
-
 }
 
 const readUser = async (req, res) => {
     const { userId, type } = getUserInfo(res)
     const { id } = req.params
     try {
-
-        // findandupdate
         const requestedUser = await User.findByIdAndUpdate(new mongoose.Types.ObjectId(id),
             {
                 "$push":
@@ -85,27 +95,21 @@ const readUser = async (req, res) => {
         if (!requestedUser)
             throw new DataNotExistError(messages.USER_NOT_EXIST)
 
-        // update the doc
-
         return res.status(200).send({ ...requestedUser.user, canEdit: type === "admin" })
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
@@ -121,22 +125,18 @@ const listSelectedUser = async (req, res) => {
         return res.status(200).send(selectedUser)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
@@ -150,22 +150,18 @@ const listUser = async (req, res) => {
         return res.status(200).send(allUser)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
@@ -179,22 +175,18 @@ const listEmployee = async (req, res) => {
         return res.status(200).send(allUser)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
@@ -210,7 +202,6 @@ const updateUser = async (req, res) => {
         user_avatar = cloudinaryUploadedImage.url;
         await unlinkAsync(req.file.path)
     }
-
 
     const {
         username,
@@ -232,7 +223,6 @@ const updateUser = async (req, res) => {
     }
     console.log(update);
     try {
-
         const selectedUser = await User.findByIdAndUpdate(selectUserID,
             update, { new: true }
         )
@@ -244,49 +234,39 @@ const updateUser = async (req, res) => {
         return res.status(200).send(selectedUser)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
 const updatePassword = async (req, res) => {
     const { userId } = getUserInfo(res)
-
     const selectUserID = userId;
 
     const {
         oldpassword, newpassword
     } = req.body
 
+    if (!oldpassword || !newpassword) {
+        return res.status(400).json({
+            error: "كلمة المرور القديمة والجديدة مطلوبتان"
+        })
+    }
+
     try {
-
-        const hashedOldPassword = await hashPassword(oldpassword)
-        const hashedNewPassword = await hashPassword(newpassword)
-
-        /**
-         * 
-         * const uU = User.fOAU({
-         *  _id : selectUserID,
-         * password: 
-         * }, update)
-         */
         const user = await User.findOne({ _id: new mongoose.Types.ObjectId(selectUserID) });
         if (!user) {
-            return res.json({
+            return res.status(404).json({
                 error: messages.NO_USER_FOUND
             })
         }
@@ -297,6 +277,7 @@ const updatePassword = async (req, res) => {
             throw new PasswordNotSameError(messages.PASSWORD_NOT_SAME)
         }
         else {
+            const hashedNewPassword = await hashPassword(newpassword)
             const updatedUser = await User.findOneAndUpdate({
                 _id: new mongoose.Types.ObjectId(selectUserID)
             }, { password: hashedNewPassword })
@@ -309,22 +290,18 @@ const updatePassword = async (req, res) => {
         }
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
@@ -335,7 +312,6 @@ const deleteUser = async (req, res) => {
     const selectUserID = type === "admin" ? id : userId;
 
     try {
-
         const deletedUser = await User.findByIdAndDelete(selectUserID)
         if (!deletedUser)
             throw new DataNotExistError(messages.USER_NOT_EXIST)
@@ -343,22 +319,18 @@ const deleteUser = async (req, res) => {
         return res.status(200).send(deletedUser)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 

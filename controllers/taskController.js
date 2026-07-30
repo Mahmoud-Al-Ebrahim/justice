@@ -19,6 +19,13 @@ const createTask = async (req, res) => {
     try {
         const { userId, type, name } = getUserInfo(res)
         const { title, description, status, assignedTo, deadline, acceptanceCriteria } = req.body;
+        
+        if (!title || !assignedTo || assignedTo.length === 0) {
+            return res.status(400).json({
+                error: "عنوان المهمة والمسند إليهم مطلوبان"
+            })
+        }
+        
         const assignedToId = []
         assignedTo.forEach((pair) => {
             pair['userId'] = pair['name']
@@ -43,7 +50,19 @@ const createTask = async (req, res) => {
 
         res.status(200).json(newTask);
     } catch (error) {
-        res.status(500).json({ error: messages.SERVER_ERROR });
+        if (error instanceof mongoose.Error.ValidationError) {
+            const validationErrors = {};
+            for (const field in error.errors)
+                validationErrors[field] = error.errors[field].message;
+            return res.status(400).json({
+                error: messages.VALIDATION_FAILED,
+                validationErrors,
+            });
+        }
+        res.status(500).json({ 
+            error: messages.SERVER_ERROR,
+            message: error.message 
+        });
     }
 };
 
@@ -53,7 +72,10 @@ const getTasks = async (req, res) => {
         const tasks = await Task.find();
         res.status(200).json(tasks);
     } catch (error) {
-        res.status(500).json({ error: messages.SERVER_ERROR });
+        res.status(500).json({ 
+            error: messages.SERVER_ERROR,
+            message: error.message 
+        });
     }
 };
 
@@ -72,16 +94,12 @@ const retrieveAllUsersExceptCurrentUser = async (excludeName) => {
 
 const getUserList = async (req, res) => {
     try {
-
-        const { name } = getUserInfo(res);    // Get the user's name from cookies token
-
-        const userNames = await retrieveAllUsersExceptCurrentUser(name);  // Get all usernames except the current user
-
-        return res.json(userNames);           // Send the response with the user list
-
+        const { name } = getUserInfo(res);
+        const userNames = await retrieveAllUsersExceptCurrentUser(name);
+        return res.json(userNames);
     } catch (error) {
-        return res.status(400).json({
-            error: messages.USER_LIST_SEND_ERROR,
+        return res.status(500).json({
+            error: messages.SERVER_ERROR,
             message: error.message
         });
     }
@@ -95,9 +113,6 @@ const getTasksForUser = async (req, res) => {
         const allUser = []
         const tasks = await Task.find({ "assignedTo.userId": userId, });
         tasks.forEach((task) => {
-            // if(!(task.assignedBy in allUser)){
-            //     allUser.push((task.assignedBy))
-            // }
             task.assignedTo.forEach(assignedToId => {
                 if (!(assignedToId.userId) in allUser) {
                     allUser.push((assignedToId.userId))
@@ -117,7 +132,6 @@ const getTasksForUser = async (req, res) => {
 
         users.forEach((user) => {
             user._id = String(user._id)
-
         })
 
         const test = await Task.aggregate([
@@ -129,7 +143,7 @@ const getTasksForUser = async (req, res) => {
             {
                 $addFields: {
                     assignedByObjectId: {
-                        $toObjectId: '$assignedBy', // Convert assignedBy from string to ObjectId
+                        $toObjectId: '$assignedBy',
                     },
                     assignedToObjectId: {
                         $map: {
@@ -137,7 +151,7 @@ const getTasksForUser = async (req, res) => {
                             as: 'assignedToUser',
                             in: {
                                 userId: {
-                                    $toObjectId: '$$assignedToUser.userId', // Convert assignedTo.userId from string to ObjectId
+                                    $toObjectId: '$$assignedToUser.userId',
                                 },
                                 status: '$$assignedToUser.status',
                             },
@@ -147,7 +161,7 @@ const getTasksForUser = async (req, res) => {
             },
             {
                 $lookup: {
-                    from: 'users', // The name of the User collection
+                    from: 'users',
                     localField: 'assignedByObjectId',
                     foreignField: '_id',
                     as: 'assignedByUser'
@@ -194,28 +208,14 @@ const getTasksForUser = async (req, res) => {
             }
         ])
 
-        console.log(tasks);
-
-        // for (const task of tasks) {
-        //     const uploadUserId = task.assignedBy
-        //     let uploadedByUserName = await User.findById(new mongoose.Types.ObjectId(uploadUserId)).select(['username', 'avatar_url']);
-
-        //     const lastAccessUserId = task.assignedTo
-        //     let lastAccessedByUserName = await User.find({_id: {
-        //         $in: allUser
-        //     }}).select(['username', 'avatar_url']);
-
-        //     const relatedCaseId = doc.doc_case_related
-        //     let relatedCaseName = await Case.findById(new mongoose.Types.ObjectId(relatedCaseId)).select('case_title');
-
-        //     updatedCaseDocs.push({ ...doc._doc, uploadedByUserName, lastAccessedByUserName, relatedCaseName })
-        // }
-
         console.log(test);
         res.status(200).json(test);
     } catch (error) {
         console.log(error.message);
-        res.status(400).json({ error: messages.SERVER_ERROR });
+        res.status(500).json({ 
+            error: messages.SERVER_ERROR,
+            message: error.message 
+        });
     }
 };
 
@@ -231,7 +231,7 @@ const getTask = async (req, res) => {
             {
                 $addFields: {
                     assignedByObjectId: {
-                        $toObjectId: '$assignedBy', // Convert assignedBy from string to ObjectId
+                        $toObjectId: '$assignedBy',
                     },
                     assignedToObjectId: {
                         $map: {
@@ -239,7 +239,7 @@ const getTask = async (req, res) => {
                             as: 'assignedToUser',
                             in: {
                                 userId: {
-                                    $toObjectId: '$$assignedToUser.userId', // Convert assignedTo.userId from string to ObjectId
+                                    $toObjectId: '$$assignedToUser.userId',
                                 },
                                 status: '$$assignedToUser.status',
                             },
@@ -249,7 +249,7 @@ const getTask = async (req, res) => {
             },
             {
                 $lookup: {
-                    from: 'users', // The name of the User collection
+                    from: 'users',
                     localField: 'assignedByObjectId',
                     foreignField: '_id',
                     as: 'assignedByUser'
@@ -295,27 +295,32 @@ const getTask = async (req, res) => {
                 }
             }
         ])
-        if (!task) return res.status(404).json({ error: messages.TASK_NOT_FOUND });
+        if (!task || task.length === 0) return res.status(404).json({ error: messages.TASK_NOT_FOUND });
 
-        // 检查当前用户是否有权限查看该任务
-        // const currentUser = req.user; // 从 req.user 中获取当前用户
-        // if (String(task.assignedTo) !== String(currentUser._id)) {
-        //     return res.status(403).json({ error: 'You do not have permission to view this task' });
-        // }
         res.status(200).json(task[0]);
     } catch (error) {
-        res.status(500).json({ error: messages.SERVER_ERROR });
+        res.status(500).json({ 
+            error: messages.SERVER_ERROR,
+            message: error.message 
+        });
     }
 };
 
 const updateStatus = async (req, res) => {
     const { _id } = req.body
-        const { userId, type, name } = getUserInfo(res)
-        const status = req.params.status
+    const { userId, type, name } = getUserInfo(res)
+    const status = req.params.status
+    
+    if (!_id) {
+        return res.status(400).json({
+            error: "معرف المهمة مطلوب"
+        })
+    }
+    
     try {
         const task = await Task.findByIdAndUpdate(_id, { status });
         if (!task) {
-            return res.status(404).json({ message: messages.TASK_NOT_FOUND });
+            return res.status(404).json({ error: messages.TASK_NOT_FOUND });
         }
         let notiMsg
         if(status === "working") notiMsg = "يعمل حالياً على المهمة المسندة إليك:"
@@ -326,7 +331,10 @@ const updateStatus = async (req, res) => {
 
         res.status(200).json(task);
     } catch (error) {
-        res.status(500).json({ error: messages.SERVER_ERROR });
+        res.status(500).json({ 
+            error: messages.SERVER_ERROR,
+            message: error.message 
+        });
     }
 }
 
@@ -335,6 +343,13 @@ const updateTask = async (req, res) => {
     const { userId, type } = getUserInfo(res)
     console.log(req.body);
     let { _id, title, details, status, assignedTo, dateStart, location, assignedToUsers } = req.body;
+    
+    if (!_id) {
+        return res.status(400).json({
+            error: "معرف المهمة مطلوب"
+        })
+    }
+    
     assignedToUsers.forEach((pair) => {
         pair['userId'] = pair['name']
         pair['status'] = pair['response']
@@ -344,10 +359,7 @@ const updateTask = async (req, res) => {
 
     assignedTo = assignedToUsers
 
-
-    // const { id, creator, title, lawyer, description, status, assignedBy, assignedTo, deadline, taskAssignedDate, acceptanceCriteria } = req.body;
     try {
-
         const updatedTask = {
             title,
             description: details,
@@ -359,13 +371,25 @@ const updateTask = async (req, res) => {
         };
         const newTask = await Task.findByIdAndUpdate(_id, updatedTask, { new: true });
 
-        res.status(200).json(newTask);
+        if (!newTask) {
+            return res.status(404).json({ error: messages.TASK_NOT_FOUND });
+        }
 
-        // const task = await Task.findByIdAndUpdate(_id, { creator, title, lawyer, description, status, assignedBy, assignedTo, deadline, taskAssignedDate, acceptanceCriteria }, { new: true });
-        // if (!task) return res.status(404).json({ error: 'Task not found' });
-        // res.status(200).json(task);
+        res.status(200).json(newTask);
     } catch (error) {
-        res.status(500).json({ error: messages.SERVER_ERROR });
+        if (error instanceof mongoose.Error.ValidationError) {
+            const validationErrors = {};
+            for (const field in error.errors)
+                validationErrors[field] = error.errors[field].message;
+            return res.status(400).json({
+                error: messages.VALIDATION_FAILED,
+                validationErrors,
+            });
+        }
+        res.status(500).json({ 
+            error: messages.SERVER_ERROR,
+            message: error.message 
+        });
     }
 };
 
@@ -375,11 +399,14 @@ const deleteTask = async (req, res) => {
         const { id } = req.params;
         const task = await Task.findByIdAndDelete(id);
         if (!task) {
-            return res.status(404).json({ message: messages.TASK_NOT_FOUND });
+            return res.status(404).json({ error: messages.TASK_NOT_FOUND });
         }
         res.status(200).json({ message: messages.TASK_DELETED });
     } catch (error) {
-        res.status(500).json({ error: messages.SERVER_ERROR });
+        res.status(500).json({ 
+            error: messages.SERVER_ERROR,
+            message: error.message 
+        });
     }
 };
 

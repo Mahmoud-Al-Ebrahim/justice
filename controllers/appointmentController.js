@@ -253,261 +253,248 @@ const checkUserType = (req, res) => {
 
 // To send the appointments to the user
 const getAppointments = async (req, res) => {
-
   try {
-
-    const { name, type } = getUserInfo(res);  // Get the user's name and user type from cookies token
+    const { name, type } = getUserInfo(res);
     let isAdmin, appointments;
 
-    const allAppointments = await retrieveAllAppointments();    // Get all appointments from database
+    const allAppointments = await retrieveAllAppointments();
 
-    if(type == 'admin'){                      // If is admin, then send all appointments
+    if(type == 'admin'){
       isAdmin = true;
       appointments = allAppointments;
     }
     else{
-      isAdmin = false;                  // If is normal user, send his/her own appointments only
-      appointments = filterAppointments(allAppointments, name);   // Filter all the appointments based on the username
+      isAdmin = false;
+      appointments = filterAppointments(allAppointments, name);
     }
   
-    return res.json({                   // Send the response with data
+    return res.json({
       username: name,
       isAdmin: isAdmin,
       appointments: appointments
     })
   } catch (error) {
-    return res.status(400).json({
-      error: messages.APPOINTMENTS_SEND_ERROR,
+    return res.status(500).json({
+      error: messages.SERVER_ERROR,
       message: error.message
     });
   }
-
 }
 
 
 // To return the other user's name list
 const getUserList = async (req, res) => {
-
   try {
-
-    const { name } = getUserInfo(res);    // Get the user's name from cookies token
-
-    const userNames = await retrieveAllUsersExceptCurrentUser(name);  // Get all usernames except the current user
-
-    return res.json(userNames);           // Send the response with the user list
-
+    const { name } = getUserInfo(res);
+    const userNames = await retrieveAllUsersExceptCurrentUser(name);
+    return res.json(userNames);
   } catch (error) {
-    return res.status(400).json({
-      error: messages.USER_LIST_SEND_ERROR,
+    return res.status(500).json({
+      error: messages.SERVER_ERROR,
       message: error.message
     });
   }
-
 }
 
 
 // To create a new appointment and store in database, then return all related appointements
 const createAppointment = async (req, res) => {
-
   try {
-
-    const gotAppointment = req.body;          // Get the new appointment
-    const { name, type } = getUserInfo(res);  // Get the user's name from cookies token
+    const gotAppointment = req.body;
+    const { name, type } = getUserInfo(res);
     let isAdmin, appointments;
 
-    // Add the username into creator property
+    if (!gotAppointment.title || !gotAppointment.attendees || gotAppointment.attendees.length === 0) {
+      return res.status(400).json({
+        error: "عنوان الموعد والحضور مطلوبان"
+      })
+    }
+
     gotAppointment.creator = name;
     const newAppointment = new Appointment(gotAppointment);
     
-    // Use await to wait for the save operation to complete
     await newAppointment.save();
 
-    // Get all appointments from database
     const allAppointments = await retrieveAllAppointments();
   
-    if (type == 'admin') {               // If is admin, then send all appointments
+    if (type == 'admin') {
       isAdmin = true;
-      appointments = allAppointments;    // Get all the appointments
+      appointments = allAppointments;
     } else {
-      isAdmin = false;                   // If is normal user, send his/her own appointments only
-      appointments = filterAppointments(allAppointments, name);   // Filter all the appointments
+      isAdmin = false;
+      appointments = filterAppointments(allAppointments, name);
     }
 
-    // To get the user id and send notification about new appointment invitation
     const attendeeList = getListOfAttendees(gotAppointment);
     const attendeeListID = await getListOfUserID(attendeeList);
     const message = generateMessage(gotAppointment, "newAppointment");
     await saveNotifications(message, attendeeListID, "newAppointment", `/php/appointment`);
   
-    return res.json({                    // Send the response with updated data
+    return res.json({
       username: name,
       isAdmin: isAdmin,
       appointments: appointments
     });
   } catch (error) {
-    return res.status(400).json({
-      error: messages.APPOINTMENT_SAVE_ERROR,
+    if (error instanceof mongoose.Error.ValidationError) {
+      const validationErrors = {};
+      for (const field in error.errors)
+        validationErrors[field] = error.errors[field].message;
+      return res.status(400).json({
+        error: messages.VALIDATION_FAILED,
+        validationErrors,
+      });
+    }
+    return res.status(500).json({
+      error: messages.SERVER_ERROR,
       message: error.message
     });
   }
-
 }
 
 
 // To return a specific appointment based on id
 const getSpecificAppointment = async (req, res) => {
-
   try {
-    // Get the appointment id
-    const id = req.params.id;   
-
-    // Get the appointment from database based on id
+    const id = req.params.id;
     const appointment = await retrieveAppointmentByID(id);
-
-    // send the appointment to frontend
     return res.json(appointment);
-
   } catch (error) {
-    return res.status(400).json({
-      error: messages.APPOINTMENT_FETCH_ERROR,
+    return res.status(500).json({
+      error: messages.SERVER_ERROR,
       message: error.message
     });
   }
-
 }
 
 
 // To update a particular appointment data in database
 const updateAppointment = async (req, res) => {
-  
   try {
-    const id = req.params.id;                 // The appointment id
-    const updatedAppointment = req.body;      // Get the updated appointment
-    const { name, type } = getUserInfo(res);  // Get the user's name and type
+    const id = req.params.id;
+    const updatedAppointment = req.body;
+    const { name, type } = getUserInfo(res);
     let isAdmin, appointments;
 
-    // To get the old appointment data
     const oldAppointment = await Appointment.findById(id);
   
-    await updateAppointmentById(id, updatedAppointment);      // Update the appointment in database
+    await updateAppointmentById(id, updatedAppointment);
 
-    const allAppointments = await retrieveAllAppointments();  // Get all appointments from database 
+    const allAppointments = await retrieveAllAppointments();
     
-  
-    if(type == 'admin'){                // If is admin, then send all appointments
+    if(type == 'admin'){
       isAdmin = true;
-      appointments = allAppointments;   // Get all the appointments
+      appointments = allAppointments;
     }
     else{
-      isAdmin = false;                  // If is normal user, send his/her own appointments only
-      appointments = filterAppointments(allAppointments, name);   // Filter all the appointments
+      isAdmin = false;
+      appointments = filterAppointments(allAppointments, name);
     }
 
-    // To get the old attendee list and new attendee list
     const oldAttendeeList = getListOfAttendees(oldAppointment);
     const newAttendeeList = getListOfAttendees(updatedAppointment);
-
-    // Array containing names present in both lists
     const commonAttendees = oldAttendeeList.filter(name => newAttendeeList.includes(name));
-
-    // Array containing names present in the old list but not in the new list
     const attendeesOnlyInOldList = oldAttendeeList.filter(name => !newAttendeeList.includes(name));
-
-    // Array containing names present in the new list but not in the old list
     const attendeesOnlyInNewList = newAttendeeList.filter(name => !oldAttendeeList.includes(name));
 
-    // Send the notification for updated appointment
     await notificationForUpdateAppointment(updatedAppointment, commonAttendees, attendeesOnlyInOldList, attendeesOnlyInNewList);
   
-    return res.json({                          // Send the response with updated data
+    return res.json({
       username: name,
       isAdmin: isAdmin,
       appointments: appointments
     })
 
   } catch (error) {
-    return res.status(400).json({
-      error: messages.APPOINTMENT_UPDATE_ERROR,
+    if (error instanceof mongoose.Error.ValidationError) {
+      const validationErrors = {};
+      for (const field in error.errors)
+        validationErrors[field] = error.errors[field].message;
+      return res.status(400).json({
+        error: messages.VALIDATION_FAILED,
+        validationErrors,
+      });
+    }
+    return res.status(500).json({
+      error: messages.SERVER_ERROR,
       message: error.message
     });
   }
-
 }
 
 
 // To cancel the appointment
 const cancelAppointment = async (req, res) => {
-
   try {
-    const id = req.params.id;                 // The appointment id
-    const newStatus = 'cancelled';            // Replace with the new status
-    const { name, type } = getUserInfo(res);  // Get the user's name and type
+    const id = req.params.id;
+    const newStatus = 'cancelled';
+    const { name, type } = getUserInfo(res);
     let isAdmin, appointments;
 
-    // To get the cancelled appointment data
     const cancelAppointment = await Appointment.findById(id);
   
-    await updateAppointmentStatusById(id, newStatus);   // Update appointment status
+    await updateAppointmentStatusById(id, newStatus);
 
-    const allAppointments = await retrieveAllAppointments();  // Get all appointments from database
+    const allAppointments = await retrieveAllAppointments();
 
-    if(type == 'admin'){                // If is admin, then send all appointments
+    if(type == 'admin'){
       isAdmin = true;
-      appointments = allAppointments;   // Get all the appointments
+      appointments = allAppointments;
     }
     else{
-      isAdmin = false;                  // If is normal user, send his/her own appointments only
-      appointments = filterAppointments(allAppointments, name);   // Filter all the appointments
+      isAdmin = false;
+      appointments = filterAppointments(allAppointments, name);
     }
 
-    // To get the user id and send notification for cancelled appointment
     const attendeeList = getListOfAttendees(cancelAppointment);
     const attendeeListID = await getListOfUserID(attendeeList);
     const message = generateMessage(cancelAppointment, "cancelAppointment");
     await saveNotifications(message, attendeeListID, "cancelAppointment", `/php/appointment`);
   
-    return res.json({                   // Send the response with updated data
+    return res.json({
       username: name,
       isAdmin: isAdmin,
       appointments: appointments
     })
     
   } catch (error) {
-    return res.status(400).json({
-      error: messages.APPOINTMENT_STATUS_ERROR,
+    return res.status(500).json({
+      error: messages.SERVER_ERROR,
       message: error.message
     });
   }
-  
 }
 
 
 // To update the user response
 const updateUserResponse = async (req, res) => {
-
   try {
-    const id = req.params.id;                 // The appointment id
-    const { name, type } = getUserInfo(res);  // Get the user's name and type
-    const userResponse = req.body;            // Get the user response
+    const id = req.params.id;
+    const { name, type } = getUserInfo(res);
+    const userResponse = req.body;
     let isAdmin, appointments;
 
-    // To get the responded appointment data
+    if (!userResponse.response) {
+      return res.status(400).json({
+        error: "الرد مطلوب"
+      })
+    }
+
     const respondedAppointment = await Appointment.findById(id);
   
-    await updateAttendeeResponse(id, name, userResponse.response);  // Update the attendee response
+    await updateAttendeeResponse(id, name, userResponse.response);
 
-    const allAppointments = await retrieveAllAppointments();  // Get all appointments from database
+    const allAppointments = await retrieveAllAppointments();
 
-    if(type == 'admin'){                // If is admin, then send all appointments
+    if(type == 'admin'){
       isAdmin = true;
-      appointments = allAppointments;   // Get all the appointments !!!
+      appointments = allAppointments;
     }
     else{
-      isAdmin = false;                  // If is normal user, send his/her own appointments only
-      appointments = filterAppointments(allAppointments, name);   // Filter all the appointments !!!
+      isAdmin = false;
+      appointments = filterAppointments(allAppointments, name);
     }
 
-    // To get the creator id and send notification for appointment response
     let creatorID = await getListOfUserID([respondedAppointment.creator]);
     let titleAndTime = titleTimeMessage(respondedAppointment);
 
@@ -520,22 +507,18 @@ const updateUserResponse = async (req, res) => {
       await saveNotifications(message, creatorID, "declineAppointment", `/php/appointment`);
     }
     
-  
-    res.json({                          // Send the response with updated data
+    res.json({
       username: name,
       isAdmin: isAdmin,
       appointments: appointments
     })
     
   } catch (error) {
-    return res.status(400).json({
-      error: messages.APPOINTMENT_RESPONSE_ERROR,
+    return res.status(500).json({
+      error: messages.SERVER_ERROR,
       message: error.message
     });
   }
-
-    
-  
 }
 
 

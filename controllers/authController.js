@@ -11,53 +11,67 @@ const test = (req, res) => {
 const registerUser = async (req, res) => {
     try {
         const { email, password, username, number, address } = req.body;
-        const hashedPassword = await hashPassword(password)
+        
         if (!email) {
-            return res.json({
-                err: messages.EMAIL_REQUIRED
+            return res.status(400).json({
+                error: messages.EMAIL_REQUIRED
             })
         }
 
         if (!password || password.length < 6) {
-            return res.json({
-                err: messages.PASSWORD_MIN_LENGTH
+            return res.status(400).json({
+                error: messages.PASSWORD_MIN_LENGTH
             })
         }
 
         if (!username) {
-            return res.json({
-                err: messages.USERNAME_REQUIRED
+            return res.status(400).json({
+                error: messages.USERNAME_REQUIRED
             })
         } 
         if (!number) {
-            return res.json({
-                err: messages.NUMBER_REQUIRED
+            return res.status(400).json({
+                error: messages.NUMBER_REQUIRED
             })
         }
         if (!address) {
-            return res.json({
-                err: messages.ADDRESS_REQUIRED
+            return res.status(400).json({
+                error: messages.ADDRESS_REQUIRED
             })
         }
 
-        else {
-            const newUser = new User({
-                username, email, number, address, password:hashedPassword, avatar_url:"", type:"client",
-            })
-            await newUser.save();
-            res.status(201).json({ message: messages.REGISTRATION_SUCCESS });
-        }
+        const hashedPassword = await hashPassword(password)
+        const newUser = new User({
+            username, email, number, address, password:hashedPassword, avatar_url:"", type:"client",
+        })
+        await newUser.save();
+        res.status(201).json({ message: messages.REGISTRATION_SUCCESS });
     } catch (error) {
-        res.status(400).json({ message: messages.REGISTRATION_FAILED });
+        if (error.code === 11000) {
+            return res.status(400).json({
+                error: "البريد الإلكتروني أو رقم الهاتف أو العنوان مسجل بالفعل"
+            })
+        }
+        res.status(400).json({ 
+            error: messages.REGISTRATION_FAILED,
+            message: error.message 
+        });
     }
 }
 
 const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body
+        
+        if (!email || !password) {
+            return res.status(400).json({
+                error: "البريد الإلكتروني وكلمة المرور مطلوبان"
+            })
+        }
+        
         const user = await User.findOne({ email });
         if (!user) {
-            return res.json({
+            return res.status(401).json({
                 error: messages.NO_USER_FOUND
             })
         }
@@ -74,7 +88,7 @@ const loginUser = async (req, res) => {
                 res.cookie('token', token, {
                     secure: false,
                     httpOnly: true,
-                    maxAge: 2 * 60 * 60 * 1000,
+                    maxAge: 2 * 60 * 1000, // 2 minutes
                 })
                 .json({ token, type: user.type, name: user.username})
             })

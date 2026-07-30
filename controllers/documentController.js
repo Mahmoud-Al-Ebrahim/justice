@@ -48,6 +48,12 @@ const updateDoc = async (req, res) => {
         doc_description
     } = req.body
 
+    if (!q_id || !q_caseId) {
+        return res.status(400).json({
+            error: "معرف المستند والقضية مطلوبان"
+        })
+    }
+
     const filter = {
         "doc_case_related": q_caseId,
         "uploaded_by": userId,
@@ -92,22 +98,18 @@ const updateDoc = async (req, res) => {
         return res.status(200).send(selectedDocument)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
@@ -115,10 +117,8 @@ const readDoc = async (req, res) => {
     const { userId, type } = getUserInfo(res)
     const { id, caseId } = req.params
     try {
-        // check curent user is in case?
         await checkCaseAccess(userId, type, caseId)
 
-        // findandupdate
         const requestedDocument = await Document.findByIdAndUpdate(new mongoose.Types.ObjectId(id),
             {
                 "$push":
@@ -148,22 +148,18 @@ const readDoc = async (req, res) => {
         return res.status(200).send({ ...requestedDocument._doc, canEdit: requestedDocument.uploaded_by === userId, uploadedByUserName, lastAccessedByUserName, relatedCaseName })
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
@@ -190,22 +186,18 @@ const listDoc = async (req, res) => {
         return res.status(200).send(updatedCaseDocs)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
@@ -238,22 +230,18 @@ const listDocByCase = async (req, res) => {
         return res.status(200).send(updatedCaseDocs)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
@@ -375,7 +363,7 @@ const deleteDoc = async (req, res) => {
     const filter = type === "admin" ? {
         "_id": new mongoose.Types.ObjectId(id)
     } : {
-        "doc_case_related": q_caseId,
+        "doc_case_related": caseId,
         "uploaded_by": userId,
         "_id": new mongoose.Types.ObjectId(id)
     }
@@ -388,37 +376,29 @@ const deleteDoc = async (req, res) => {
         if (!deletedDocument)
             throw new DataNotExistError(messages.DOCUMENT_NOT_EXIST)
 
-        // TODO: delete file from googledrive
         const authClient = await googleDrive.authorize()
         const deletedDoc = await googleDrive.deleteFile(authClient, deletedDocument.doc_link_fileId)
-        console.log(deletedDocument);
 
         let deletedByUserName = await User.findById(new mongoose.Types.ObjectId(userId)).select(['username']);
-        console.log(deletedByUserName);
         let deletedCaseName = await Case.findById(new mongoose.Types.ObjectId(caseId)).select(['case_title']);
-        console.log(deletedCaseName);
         
         await saveNotifications(`${deletedByUserName.username} قام بحذف ${deletedDocument.doc_title} (مستند) في هذه القضية: ${deletedCaseName.case_title}`, deletedDocument.can_be_access_by, "deleteDocument", `/php/case/view.php?cid=${caseId}`)
 
         return res.status(200).send(deletedDocument)
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
-            // Mongoose validation error
             const validationErrors = {};
-
             for (const field in error.errors)
                 validationErrors[field] = error.errors[field].message;
-
             return res.status(400).json({
                 error: messages.VALIDATION_FAILED,
                 validationErrors,
             });
-        } else {
-            res.status(400).json({
-                error: error.name,
-                message: error.message
-            })
         }
+        res.status(500).json({
+            error: messages.SERVER_ERROR,
+            message: error.message
+        })
     }
 }
 
