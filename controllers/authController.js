@@ -95,7 +95,7 @@ const loginUser = async (req, res) => {
                     httpOnly: true,
                     maxAge: 24 * 60 * 60 * 1000, // 1 day
                 })
-                res.status(200).json({ token, type: user.type, name: user.username})
+                res.status(200).json({ token: token, type: user.type, name: user.username})
             })
         }
         else{
