@@ -69,7 +69,7 @@ const loginUser = async (req, res) => {
             })
         }
         
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).maxTimeMS(5000).exec();
         if (!user) {
             return res.status(401).json({
                 error: messages.NO_USER_FOUND
@@ -97,6 +97,16 @@ const loginUser = async (req, res) => {
             throw new UnauthorizedAccessError(messages.WRONG_PASSWORD)
         }
     } catch (error) {
+        if (error.name === 'MongoTimeoutError' || error.message.includes('buffering timed out')) {
+            return res.status(503).json({
+                error: messages.DATABASE_TIMEOUT
+            })
+        }
+        if (error.name === 'MongoError') {
+            return res.status(500).json({
+                error: messages.DATABASE_ERROR
+            })
+        }
         res.status(401).json({
             error: error.name,
             message: error.message

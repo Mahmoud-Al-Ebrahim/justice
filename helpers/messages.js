@@ -60,6 +60,8 @@ const messages = {
 
     // Internal
     NOTIFICATION_NOT_SENT: 'لم يتم إرسال الإشعار',
+    DATABASE_TIMEOUT: 'انتهت مهلة الاتصال بقاعدة البيانات، يرجى المحاولة مرة أخرى',
+    DATABASE_ERROR: 'حدث خطأ في قاعدة البيانات',
 };
 
 module.exports = messages;

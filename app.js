@@ -23,7 +23,10 @@ const { requireAuth } = require('./middlewares/authMiddleware');
 
 mongoose.connect(process.env.MONGO_URL, {
   serverSelectionTimeoutMS: 120000, // 2 minutes timeout
-  connectTimeoutMS: 120000 // 2 minutes timeout
+  connectTimeoutMS: 120000, // 2 minutes timeout
+  socketTimeoutMS: 45000, // 45 seconds socket timeout
+  maxPoolSize: 10, // Maximum connection pool size
+  minPoolSize: 5, // Minimum connection pool size
 })
   .then(() => {
     console.log('تم الاتصال بقاعدة البيانات');
