@@ -78,25 +78,31 @@ const loginUser = async (req, res) => {
 
         const match = await comparePassword(password, user.password)
         if (match) {
-            jwt.sign({
+            return jwt.sign({
                 email: user.email,
                 userId: user._id,
                 name: user.username,
                 type: user.type
             }, process.env.JWT_SECRET, {}, (err, token) => {
-                if (err) throw err;
+                if (err) {
+                    console.error('JWT signing error:', err);
+                    return res.status(500).json({
+                        error: 'حدث خطأ في إنشاء رمز المصادقة'
+                    })
+                }
                 res.cookie('token', token, {
                     secure: false,
                     httpOnly: true,
                     maxAge: 2 * 60 * 1000, // 2 minutes
                 })
-                .json({ token, type: user.type, name: user.username})
+                res.status(200).json({ token, type: user.type, name: user.username})
             })
         }
         else{
             throw new UnauthorizedAccessError(messages.WRONG_PASSWORD)
         }
     } catch (error) {
+        console.error('Login error:', error);
         if (error.name === 'MongoTimeoutError' || error.message.includes('buffering timed out')) {
             return res.status(503).json({
                 error: messages.DATABASE_TIMEOUT

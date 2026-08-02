@@ -59,6 +59,16 @@ app.use('/auth', auth);
 app.use('/api/crm', crmRoute);
 app.use('/api/tasks', taskRoutes);
 
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  const statusCode = err.statusCode || err.status || 500;
+  res.status(statusCode).json({
+    error: err.message || 'حدث خطأ في الخادم',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
 const io = require('socket.io')(server, {
   cors: {
     origin: process.env.CLIENT_URL,
